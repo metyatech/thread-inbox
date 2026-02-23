@@ -1,0 +1,51 @@
+{
+  "name": "@metyatech/thread-inbox",
+  "version": "0.1.0",
+  "description": "Threaded conversation inbox for managing user-AI interactions",
+  "type": "module",
+  "bin": {
+    "thread-inbox": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/metyatech/thread-inbox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/metyatech/thread-inbox/issues"
+  },
+  "homepage": "https://github.com/metyatech/thread-inbox",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
+    "verify": "npm run format:check && npm run lint && npm run build && npm run test"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  }
+}
