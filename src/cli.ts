@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import {
   createThread,
@@ -11,12 +14,18 @@ import {
 import { formatThreadList, formatThread } from './format.js';
 import { startGui } from './gui.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg: { version: string } = JSON.parse(
+  readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
+);
+
 const program = new Command();
 
 program
   .name('thread-inbox')
   .description('Threaded conversation inbox for managing user-AI interactions')
-  .version('0.2.0');
+  .version(pkg.version);
 
 program
   .command('new <title>')
