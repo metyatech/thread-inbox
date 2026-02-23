@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const testDir = path.join(__dirname, '../../test-temp-cli');
 const cliPath = path.join(__dirname, '../../dist/cli.js');
+
+let testDir: string;
 
 function runCli(
   args: string[],
@@ -33,11 +35,15 @@ function runCli(
 
 describe('CLI integration', () => {
   beforeEach(async () => {
-    await fs.mkdir(testDir, { recursive: true });
+    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'thread-inbox-test-'));
   });
 
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true });
+    try {
+      await fs.rm(testDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    } catch {
+      // Ignore cleanup failures on Windows (EBUSY)
+    }
   });
 
   describe('new command', () => {
