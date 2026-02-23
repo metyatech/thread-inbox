@@ -31,18 +31,27 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
-    "verify": "npm run format:check && npm run lint && npm run build && npm run test"
+    "verify": "npm run format:check && npm run lint && npm run build && npm run test",
+    "prepare": "husky"
   },
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "nanoid": "^5.0.7"
   },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "prettier --check",
+      "eslint --ext .ts"
+    ]
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
