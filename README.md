@@ -121,6 +121,18 @@ thread-inbox purge
 thread-inbox purge --dry-run
 ```
 
+### Web GUI
+
+```bash
+# Launch the web GUI (opens browser automatically)
+thread-inbox gui
+
+# Specify port and data directory
+thread-inbox gui --port 3334 --dir ~/projects/my-app
+```
+
+The GUI provides a browser-based interface for managing threads with status filtering, message history, and adding messages.
+
 ### Use a custom directory
 
 All commands support `--dir <path>` to specify a working directory:

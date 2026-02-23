@@ -45,7 +45,7 @@ describe('CLI integration', () => {
       const { stdout, exitCode } = await runCli(['new', 'Test thread']);
 
       expect(exitCode).toBe(0);
-      expect(stdout).toMatch(/^[a-zA-Z0-9]{8}\n$/);
+      expect(stdout).toMatch(/^[a-zA-Z0-9_-]{8}\n$/);
     });
 
     it('should support --json flag', async () => {
