@@ -1,6 +1,6 @@
 {
   "name": "@metyatech/thread-inbox",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Threaded conversation inbox for managing user-AI interactions",
   "type": "module",
   "bin": {
