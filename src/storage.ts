@@ -23,12 +23,10 @@ export async function readThreads(dir: string): Promise<Thread[]> {
 
 export async function writeThreads(dir: string, threads: Thread[]): Promise<void> {
   const filePath = path.join(dir, FILENAME);
-  const tempPath = filePath + '.tmp';
 
   await fs.mkdir(dir, { recursive: true });
 
   const content = threads.map((thread) => JSON.stringify(thread)).join('\n') + '\n';
 
-  await fs.writeFile(tempPath, content, 'utf-8');
-  await fs.rename(tempPath, filePath);
+  await fs.writeFile(filePath, content, 'utf-8');
 }

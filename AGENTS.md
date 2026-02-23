@@ -21,6 +21,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/agent-rules-composition.m
 - AGENTS.md is self-contained; do not rely on parent/child AGENTS for inheritance or precedence.
 - Maintain shared rules centrally and compose per project; use project-local rules only for truly local policies.
 - Place AGENTS.md at the project root; only add another AGENTS.md for nested independent projects.
+- Before doing any work in a repository that contains `agent-ruleset.json`, run `compose-agentsmd` in that repository to refresh its AGENTS.md and ensure rules are current.
 
 ## Update policy
 
@@ -577,6 +578,57 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/task-lifecycle-tracking.m
 - When reporting a task as complete, state the lifecycle stage explicitly (committed/pushed/released/etc.); never claim "done" when downstream stages remain incomplete.
 - If `task-tracker` is not installed, install it via `npm install -g @metyatech/task-tracker` before proceeding.
 - The task-tracker state file (`.tasks.jsonl`) must be committed to version control; do not add it to `.gitignore`.
+
+Source: github:metyatech/agent-rules@HEAD/rules/global/thread-inbox.md
+
+# Thread inbox
+
+- `thread-inbox` is the persistent cross-session conversation context tracker. Use it to preserve discussion topics, decisions, and context that span sessions.
+- If `thread-inbox` is not installed, install it via `npm install -g @metyatech/thread-inbox` before proceeding.
+- Store `.threads.jsonl` in the workspace root directory (use `--dir <workspace-root>`). Do not commit it to version control; it is local conversation context, not project state.
+
+## Status model
+
+Thread status is explicit (set by commands, not auto-computed):
+
+- `active` — open, no specific action pending.
+- `waiting` — user sent a message; AI should respond. Auto-set when adding `--from user` messages.
+- `needs-reply` — AI needs user input or decision. Set via `--status needs-reply`.
+- `review` — AI reporting completion; user should review. Set via `--status review`.
+- `resolved` — closed.
+
+## Session start
+
+- Run `thread-inbox inbox --dir <workspace-root>` to find threads needing user action (`needs-reply` and `review`).
+- Run `thread-inbox list --status waiting --dir <workspace-root>` to find threads needing agent attention.
+- Report findings before starting new work.
+
+## When to create threads
+
+- Create a thread when a new discussion topic, design decision, or multi-session initiative emerges.
+- Do not create threads for tasks already tracked by `task-tracker`; threads are for context and decisions, not work items.
+- Thread titles should be concise topic descriptions (e.g., "CI strategy for skill repos", "thread-inbox design approach").
+
+## When to add messages
+
+- Add a `--from user` message for any substantive user interaction: decisions, preferences, directions, questions, status checks, feedback, and approvals. Thread-inbox is the only cross-session persistence mechanism for conversation context; err on the side of recording rather than omitting. Status auto-sets to `waiting`.
+- Add a `--from ai` message for informational updates (progress, notes). Status does not change by default.
+- Add a `--from ai --status needs-reply` message when asking the user a question or requesting a decision.
+- Add a `--from ai --status review` message when reporting task completion or results that need user review.
+- Record the user's actual words as `--from user`, not a third-person summary or paraphrase. Record the AI's actual response as `--from ai`. The thread should read as a conversation transcript, not meeting minutes.
+
+## Thread lifecycle
+
+- Resolve threads when the topic is fully addressed or the decision is implemented and recorded in rules.
+- Reopen threads if the topic resurfaces.
+- Periodically purge resolved threads to keep the inbox clean.
+
+## Relationship to other tools
+
+- `task-tracker`: Tracks actionable work items with lifecycle stages. Use for "what to do."
+- `thread-inbox`: Tracks discussion context and decisions. Use for "what was discussed/decided."
+- AGENTS.md rules: Persistent invariants and constraints. Use for "how to behave."
+- If a thread captures a persistent behavioral preference, encode it as a rule and resolve the thread.
 
 Source: github:metyatech/agent-rules@HEAD/rules/global/user-identity-and-accounts.md
 

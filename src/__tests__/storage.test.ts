@@ -117,7 +117,7 @@ describe('storage', () => {
       expect(content.trim()).toBe(JSON.stringify(threads[0]));
     });
 
-    it('should overwrite existing file atomically', async () => {
+    it('should overwrite existing file', async () => {
       const threads1: Thread[] = [
         {
           id: 'abc123',
