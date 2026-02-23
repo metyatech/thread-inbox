@@ -555,7 +555,12 @@
       // Init
       setFilter('all');
       loadThreads();
-      setInterval(loadThreads, 5000);
+      setInterval(() => {
+        // Skip auto-refresh when user is typing to prevent losing input and focus
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+        loadThreads();
+      }, 5000);
     </script>
   </body>
 </html>
