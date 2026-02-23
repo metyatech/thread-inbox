@@ -8,7 +8,7 @@ A local CLI tool that tracks threaded conversations between a user and AI agents
 
 - 📋 **Thread Management** - Create, list, and organize conversation threads
 - 💬 **Message Tracking** - Add messages from user or AI with timestamps
-- 🎯 **Smart Filtering** - Filter by status (active, resolved, needs-reply, waiting)
+- 🎯 **Smart Filtering** - Filter by status (active, waiting, needs-reply, review, resolved, inbox)
 - 📦 **Simple Storage** - Single JSONL file (`.threads.jsonl`) in your working directory
 - 🎨 **Colored Output** - Easy-to-read colored status indicators
 - 📊 **JSON Support** - All commands support `--json` for machine-readable output
@@ -38,10 +38,12 @@ thread-inbox new "Topics bulk assignment" --json
 thread-inbox list
 
 # Filter by status
-thread-inbox list --status active
-thread-inbox list --status resolved
-thread-inbox list --status needs-reply  # Active threads where AI sent last message
-thread-inbox list --status waiting      # Active threads where user sent last message
+thread-inbox list --status active        # Open threads, no specific action pending
+thread-inbox list --status waiting       # AI should respond (user sent a message)
+thread-inbox list --status needs-reply   # User should reply (AI asked for input)
+thread-inbox list --status review        # User should review (completion report, etc.)
+thread-inbox list --status resolved      # Closed threads
+thread-inbox list --status inbox         # needs-reply + review (all user-actionable)
 
 # JSON output
 thread-inbox list --json
@@ -56,11 +58,11 @@ def67890  waiting      Auto-purge design              "Designing..." (ai) 1d
 ghi11111  resolved     Pre-commit hook setup          "Done" (ai, 3d)     5d
 ```
 
-### Show inbox (threads needing reply)
+### Show inbox (threads needing user action)
 
 ```bash
 thread-inbox inbox
-# Alias for: thread-inbox list --status needs-reply
+# Shows threads with status needs-reply or review
 ```
 
 ### Show thread details
@@ -92,11 +94,17 @@ Messages:
 ### Add a message
 
 ```bash
-# Add user message (default)
+# Add user message (default) — auto-sets status to "waiting"
 thread-inbox add abc12345 "Looks good to me"
 
-# Add AI message
-thread-inbox add abc12345 "I'll proceed with that plan" --from ai
+# Add AI message — does NOT change thread status (informational)
+thread-inbox add abc12345 "Progress update..." --from ai
+
+# Add AI message and request user reply
+thread-inbox add abc12345 "Which approach do you prefer?" --from ai --status needs-reply
+
+# Add AI message with completion report for review
+thread-inbox add abc12345 "Task complete. Results: ..." --from ai --status review
 ```
 
 ### Resolve a thread
@@ -170,12 +178,27 @@ Each line represents a thread:
 }
 ```
 
-### Status Logic
+### Status Model
 
-- **active** - Thread is open
-- **resolved** - Thread is closed
-- **needs-reply** - Active thread where last message is from AI (user should respond)
-- **waiting** - Active thread where last message is from user (AI should respond)
+All statuses are explicit (stored directly, not computed from messages):
+
+| Status        | Meaning                                    | Who should act |
+| ------------- | ------------------------------------------ | -------------- |
+| `active`      | Thread is open, no specific action pending | —              |
+| `waiting`     | User sent a message/instruction            | AI             |
+| `needs-reply` | AI asked for user input/decision           | User           |
+| `review`      | AI reporting completion, needs user review | User           |
+| `resolved`    | Thread is closed                           | —              |
+
+**Status transitions:**
+
+- `new` → `active`
+- `add --from user` → auto-sets `waiting`
+- `add --from ai` → no change (informational by default)
+- `add --from ai --status needs-reply` → `needs-reply`
+- `add --from ai --status review` → `review`
+- `resolve` → `resolved`
+- `reopen` → `active`
 
 ## Development
 

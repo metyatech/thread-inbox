@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { readThreads, writeThreads } from './storage.js';
-import { Thread, ThreadFilters } from './types.js';
+import { Thread, ThreadFilters, ThreadStatus } from './types.js';
 
 export async function createThread(dir: string, title: string): Promise<Thread> {
   const threads = await readThreads(dir);
@@ -29,31 +29,11 @@ export async function listThreads(dir: string, filters?: ThreadFilters): Promise
   }
 
   return threads.filter((thread) => {
-    if (filters.status === 'active') {
-      return thread.status === 'active';
+    if (filters.status === 'inbox') {
+      return thread.status === 'needs-reply' || thread.status === 'review';
     }
 
-    if (filters.status === 'resolved') {
-      return thread.status === 'resolved';
-    }
-
-    if (filters.status === 'needs-reply') {
-      if (thread.status !== 'active' || thread.messages.length === 0) {
-        return false;
-      }
-      const lastMessage = thread.messages[thread.messages.length - 1];
-      return lastMessage.sender === 'ai';
-    }
-
-    if (filters.status === 'waiting') {
-      if (thread.status !== 'active' || thread.messages.length === 0) {
-        return false;
-      }
-      const lastMessage = thread.messages[thread.messages.length - 1];
-      return lastMessage.sender === 'user';
-    }
-
-    return true;
+    return thread.status === filters.status;
   });
 }
 
@@ -67,6 +47,7 @@ export async function addMessage(
   id: string,
   content: string,
   sender: 'ai' | 'user' = 'user',
+  status?: ThreadStatus,
 ): Promise<Thread> {
   const threads = await readThreads(dir);
   const threadIndex = threads.findIndex((t) => t.id === id);
@@ -82,6 +63,12 @@ export async function addMessage(
     at: new Date().toISOString(),
   });
   thread.updatedAt = new Date().toISOString();
+
+  if (status) {
+    thread.status = status;
+  } else if (sender === 'user') {
+    thread.status = 'waiting';
+  }
 
   threads[threadIndex] = thread;
   await writeThreads(dir, threads);

@@ -97,18 +97,30 @@ describe('CLI integration', () => {
   });
 
   describe('inbox command', () => {
-    it('should be alias for list --status needs-reply', async () => {
+    it('should show threads with needs-reply and review status', async () => {
       const { stdout: id1 } = await runCli(['new', 'Thread 1']);
-      await runCli(['add', id1.trim(), 'AI message', '--from', 'ai']);
+      await runCli([
+        'add',
+        id1.trim(),
+        'Need your input',
+        '--from',
+        'ai',
+        '--status',
+        'needs-reply',
+      ]);
 
       const { stdout: id2 } = await runCli(['new', 'Thread 2']);
-      await runCli(['add', id2.trim(), 'User message']);
+      await runCli(['add', id2.trim(), 'Task complete', '--from', 'ai', '--status', 'review']);
+
+      const { stdout: id3 } = await runCli(['new', 'Thread 3']);
+      await runCli(['add', id3.trim(), 'Progress update', '--from', 'ai']);
 
       const { stdout, exitCode } = await runCli(['inbox']);
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain('Thread 1');
-      expect(stdout).not.toContain('Thread 2');
+      expect(stdout).toContain('Thread 2');
+      expect(stdout).not.toContain('Thread 3');
     });
   });
 
@@ -144,7 +156,7 @@ describe('CLI integration', () => {
   });
 
   describe('add command', () => {
-    it('should add message with default sender (user)', async () => {
+    it('should add user message and set status to waiting', async () => {
       const { stdout: id } = await runCli(['new', 'Test thread']);
       const { exitCode } = await runCli(['add', id.trim(), 'Hello']);
 
@@ -155,9 +167,10 @@ describe('CLI integration', () => {
       expect(data.messages).toHaveLength(1);
       expect(data.messages[0].sender).toBe('user');
       expect(data.messages[0].content).toBe('Hello');
+      expect(data.status).toBe('waiting');
     });
 
-    it('should add message with --from ai', async () => {
+    it('should add AI message without changing status', async () => {
       const { stdout: id } = await runCli(['new', 'Test thread']);
       const { exitCode } = await runCli(['add', id.trim(), 'AI response', '--from', 'ai']);
 
@@ -166,6 +179,26 @@ describe('CLI integration', () => {
       const { stdout } = await runCli(['show', id.trim(), '--json']);
       const data = JSON.parse(stdout);
       expect(data.messages[0].sender).toBe('ai');
+      expect(data.status).toBe('active');
+    });
+
+    it('should set explicit status with --status flag', async () => {
+      const { stdout: id } = await runCli(['new', 'Test thread']);
+      const { exitCode } = await runCli([
+        'add',
+        id.trim(),
+        'Need input',
+        '--from',
+        'ai',
+        '--status',
+        'needs-reply',
+      ]);
+
+      expect(exitCode).toBe(0);
+
+      const { stdout } = await runCli(['show', id.trim(), '--json']);
+      const data = JSON.parse(stdout);
+      expect(data.status).toBe('needs-reply');
     });
 
     it('should error if thread not found', async () => {

@@ -1,62 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { formatThreadList, formatThread, getDisplayStatus, formatAge } from '../format.js';
+import { formatThreadList, formatThread, formatAge } from '../format.js';
 import { Thread } from '../types.js';
 
 describe('format', () => {
-  describe('getDisplayStatus', () => {
-    it('should return "needs-reply" for active thread with last message from ai', () => {
-      const thread: Thread = {
-        id: 'abc123',
-        title: 'Test',
-        status: 'active',
-        messages: [{ sender: 'ai', content: 'Hello', at: '2026-02-23T00:00:00.000Z' }],
-        createdAt: '2026-02-23T00:00:00.000Z',
-        updatedAt: '2026-02-23T00:00:00.000Z',
-      };
-
-      expect(getDisplayStatus(thread)).toBe('needs-reply');
-    });
-
-    it('should return "waiting" for active thread with last message from user', () => {
-      const thread: Thread = {
-        id: 'abc123',
-        title: 'Test',
-        status: 'active',
-        messages: [{ sender: 'user', content: 'Hello', at: '2026-02-23T00:00:00.000Z' }],
-        createdAt: '2026-02-23T00:00:00.000Z',
-        updatedAt: '2026-02-23T00:00:00.000Z',
-      };
-
-      expect(getDisplayStatus(thread)).toBe('waiting');
-    });
-
-    it('should return "active" for active thread with no messages', () => {
-      const thread: Thread = {
-        id: 'abc123',
-        title: 'Test',
-        status: 'active',
-        messages: [],
-        createdAt: '2026-02-23T00:00:00.000Z',
-        updatedAt: '2026-02-23T00:00:00.000Z',
-      };
-
-      expect(getDisplayStatus(thread)).toBe('active');
-    });
-
-    it('should return "resolved" for resolved thread', () => {
-      const thread: Thread = {
-        id: 'abc123',
-        title: 'Test',
-        status: 'resolved',
-        messages: [{ sender: 'ai', content: 'Done', at: '2026-02-23T00:00:00.000Z' }],
-        createdAt: '2026-02-23T00:00:00.000Z',
-        updatedAt: '2026-02-23T00:00:00.000Z',
-      };
-
-      expect(getDisplayStatus(thread)).toBe('resolved');
-    });
-  });
-
   describe('formatAge', () => {
     it('should format seconds', () => {
       const now = new Date('2026-02-23T00:00:30.000Z');

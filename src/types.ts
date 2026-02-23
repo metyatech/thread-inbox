@@ -4,23 +4,25 @@ export interface Message {
   at: string;
 }
 
+export type ThreadStatus = 'active' | 'resolved' | 'waiting' | 'needs-reply' | 'review';
+
 export interface Thread {
   id: string;
   title: string;
-  status: 'active' | 'resolved';
+  status: ThreadStatus;
   messages: Message[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type ThreadStatus = 'active' | 'resolved' | 'needs-reply' | 'waiting';
+export type ThreadFilter = ThreadStatus | 'inbox';
 
 export interface ThreadFilters {
-  status?: ThreadStatus;
+  status?: ThreadFilter;
 }
 
 export interface ListOptions {
-  status?: ThreadStatus;
+  status?: ThreadFilter;
   json?: boolean;
   dir?: string;
 }
@@ -29,5 +31,6 @@ export interface CommandOptions {
   json?: boolean;
   dir?: string;
   from?: 'ai' | 'user';
+  status?: ThreadStatus;
   dryRun?: boolean;
 }

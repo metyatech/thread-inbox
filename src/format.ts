@@ -1,19 +1,6 @@
 import chalk from 'chalk';
 import { Thread } from './types.js';
 
-export function getDisplayStatus(thread: Thread): string {
-  if (thread.status === 'resolved') {
-    return 'resolved';
-  }
-
-  if (thread.messages.length === 0) {
-    return 'active';
-  }
-
-  const lastMessage = thread.messages[thread.messages.length - 1];
-  return lastMessage.sender === 'ai' ? 'needs-reply' : 'waiting';
-}
-
 export function formatAge(date: Date, now: Date = new Date()): string {
   const diffMs = now.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -35,6 +22,8 @@ function colorStatus(status: string): string {
   switch (status) {
     case 'needs-reply':
       return chalk.yellow(status);
+    case 'review':
+      return chalk.magenta(status);
     case 'waiting':
       return chalk.cyan(status);
     case 'resolved':
@@ -56,7 +45,7 @@ export function formatThreadList(threads: Thread[], now: Date = new Date()): str
 
   const header = `${chalk.bold('ID')}        ${chalk.bold('STATUS')}       ${chalk.bold('TITLE')}                          ${chalk.bold('LAST MESSAGE')}        ${chalk.bold('AGE')}`;
   const rows = threads.map((thread) => {
-    const status = getDisplayStatus(thread);
+    const status = thread.status;
     const lastMessage =
       thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
 

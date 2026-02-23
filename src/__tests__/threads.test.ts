@@ -75,12 +75,12 @@ describe('threads', () => {
       expect(threads[0].id).toBe(thread2.id);
     });
 
-    it('should filter by needs-reply (active + last message from ai)', async () => {
+    it('should filter by needs-reply (explicit status)', async () => {
       const thread1 = await createThread(testDir, 'Thread 1');
-      await addMessage(testDir, thread1.id, 'AI message', 'ai');
+      await addMessage(testDir, thread1.id, 'AI question', 'ai', 'needs-reply');
 
       const thread2 = await createThread(testDir, 'Thread 2');
-      await addMessage(testDir, thread2.id, 'User message', 'user');
+      await addMessage(testDir, thread2.id, 'AI update', 'ai');
 
       const thread3 = await createThread(testDir, 'Thread 3');
       await resolveThread(testDir, thread3.id);
@@ -90,7 +90,7 @@ describe('threads', () => {
       expect(threads[0].id).toBe(thread1.id);
     });
 
-    it('should filter by waiting (active + last message from user)', async () => {
+    it('should filter by waiting (auto-set when user sends message)', async () => {
       const thread1 = await createThread(testDir, 'Thread 1');
       await addMessage(testDir, thread1.id, 'User message', 'user');
 
@@ -100,6 +100,34 @@ describe('threads', () => {
       const threads = await listThreads(testDir, { status: 'waiting' });
       expect(threads).toHaveLength(1);
       expect(threads[0].id).toBe(thread1.id);
+    });
+
+    it('should filter by review (explicit status)', async () => {
+      const thread1 = await createThread(testDir, 'Thread 1');
+      await addMessage(testDir, thread1.id, 'Completed', 'ai', 'review');
+
+      const thread2 = await createThread(testDir, 'Thread 2');
+      await addMessage(testDir, thread2.id, 'In progress', 'ai');
+
+      const threads = await listThreads(testDir, { status: 'review' });
+      expect(threads).toHaveLength(1);
+      expect(threads[0].id).toBe(thread1.id);
+    });
+
+    it('should filter by inbox (needs-reply + review)', async () => {
+      const thread1 = await createThread(testDir, 'Thread 1');
+      await addMessage(testDir, thread1.id, 'Question', 'ai', 'needs-reply');
+
+      const thread2 = await createThread(testDir, 'Thread 2');
+      await addMessage(testDir, thread2.id, 'Done', 'ai', 'review');
+
+      const thread3 = await createThread(testDir, 'Thread 3');
+      await addMessage(testDir, thread3.id, 'Progress', 'ai');
+
+      const threads = await listThreads(testDir, { status: 'inbox' });
+      expect(threads).toHaveLength(2);
+      const ids = threads.map((t) => t.id).sort();
+      expect(ids).toEqual([thread1.id, thread2.id].sort());
     });
   });
 
@@ -118,7 +146,7 @@ describe('threads', () => {
   });
 
   describe('addMessage', () => {
-    it('should add message with default sender (user)', async () => {
+    it('should add message with default sender (user) and set status to waiting', async () => {
       const thread = await createThread(testDir, 'Test thread');
       const updated = await addMessage(testDir, thread.id, 'Hello');
 
@@ -126,18 +154,34 @@ describe('threads', () => {
       expect(updated.messages[0].sender).toBe('user');
       expect(updated.messages[0].content).toBe('Hello');
       expect(updated.messages[0].at).toBeDefined();
+      expect(updated.status).toBe('waiting');
       expect(new Date(updated.updatedAt).getTime()).toBeGreaterThanOrEqual(
         new Date(thread.updatedAt).getTime(),
       );
     });
 
-    it('should add message with specified sender', async () => {
+    it('should add AI message without changing status by default', async () => {
       const thread = await createThread(testDir, 'Test thread');
       const updated = await addMessage(testDir, thread.id, 'AI response', 'ai');
 
       expect(updated.messages).toHaveLength(1);
       expect(updated.messages[0].sender).toBe('ai');
       expect(updated.messages[0].content).toBe('AI response');
+      expect(updated.status).toBe('active');
+    });
+
+    it('should set explicit status when provided', async () => {
+      const thread = await createThread(testDir, 'Test thread');
+      const updated = await addMessage(testDir, thread.id, 'Need your input', 'ai', 'needs-reply');
+
+      expect(updated.status).toBe('needs-reply');
+    });
+
+    it('should set review status when provided', async () => {
+      const thread = await createThread(testDir, 'Test thread');
+      const updated = await addMessage(testDir, thread.id, 'Task complete', 'ai', 'review');
+
+      expect(updated.status).toBe('review');
     });
 
     it('should append to existing messages', async () => {

@@ -173,7 +173,12 @@ export function startGui(dir: string, port = 3334): void {
           const targetDir = typeof body.dir === 'string' ? body.dir : resolvedDir;
           const sender =
             body.from === 'ai' || body.from === 'user' ? (body.from as 'ai' | 'user') : 'user';
-          const thread = await addMessage(targetDir, id, body.content, sender);
+          const validStatuses = ['waiting', 'needs-reply', 'review', 'active', 'resolved'];
+          const status =
+            typeof body.status === 'string' && validStatuses.includes(body.status)
+              ? (body.status as 'waiting' | 'needs-reply' | 'review' | 'active' | 'resolved')
+              : undefined;
+          const thread = await addMessage(targetDir, id, body.content, sender, status);
           sendJson(res, thread);
           return;
         }

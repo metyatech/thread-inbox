@@ -16,7 +16,7 @@ const program = new Command();
 program
   .name('thread-inbox')
   .description('Threaded conversation inbox for managing user-AI interactions')
-  .version('0.1.1');
+  .version('0.2.0');
 
 program
   .command('new <title>')
@@ -40,13 +40,23 @@ program
 program
   .command('list')
   .description('List all threads')
-  .option('--status <status>', 'Filter by status (active, resolved, needs-reply, waiting)')
+  .option(
+    '--status <status>',
+    'Filter by status (active, resolved, waiting, needs-reply, review, inbox)',
+  )
   .option('--json', 'Output as JSON')
   .option('--dir <path>', 'Working directory', process.cwd())
   .action(async (options: { status?: string; json?: boolean; dir: string }) => {
     try {
       const threads = await listThreads(options.dir, {
-        status: options.status as 'active' | 'resolved' | 'needs-reply' | 'waiting' | undefined,
+        status: options.status as
+          | 'active'
+          | 'resolved'
+          | 'waiting'
+          | 'needs-reply'
+          | 'review'
+          | 'inbox'
+          | undefined,
       });
 
       if (options.json) {
@@ -62,12 +72,12 @@ program
 
 program
   .command('inbox')
-  .description('List threads that need reply (alias for list --status needs-reply)')
+  .description('List threads needing user action (needs-reply or review)')
   .option('--json', 'Output as JSON')
   .option('--dir <path>', 'Working directory', process.cwd())
   .action(async (options: { json?: boolean; dir: string }) => {
     try {
-      const threads = await listThreads(options.dir, { status: 'needs-reply' });
+      const threads = await listThreads(options.dir, { status: 'inbox' });
 
       if (options.json) {
         console.log(JSON.stringify(threads, null, 2));
@@ -109,13 +119,24 @@ program
   .command('add <id> <message>')
   .description('Add a message to a thread')
   .option('--from <sender>', 'Message sender (user or ai)', 'user')
+  .option('--status <status>', 'Set thread status (waiting, needs-reply, review, active)')
   .option('--json', 'Output as JSON')
   .option('--dir <path>', 'Working directory', process.cwd())
   .action(
-    async (id: string, message: string, options: { from: string; json?: boolean; dir: string }) => {
+    async (
+      id: string,
+      message: string,
+      options: { from: string; status?: string; json?: boolean; dir: string },
+    ) => {
       try {
         const sender = options.from as 'ai' | 'user';
-        const thread = await addMessage(options.dir, id, message, sender);
+        const status = options.status as
+          | 'waiting'
+          | 'needs-reply'
+          | 'review'
+          | 'active'
+          | undefined;
+        const thread = await addMessage(options.dir, id, message, sender, status);
 
         if (options.json) {
           console.log(JSON.stringify(thread, null, 2));

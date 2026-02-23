@@ -45,8 +45,10 @@
       <div class="flex items-center gap-2 mb-4 flex-wrap">
         <div id="filter-tabs" class="flex gap-1">
           <button onclick="setFilter('all')" id="tab-all" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">All</button>
-          <button onclick="setFilter('needs-reply')" id="tab-needs-reply" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Needs Reply</button>
-          <button onclick="setFilter('waiting')" id="tab-waiting" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Waiting</button>
+          <button onclick="setFilter('inbox')" id="tab-inbox" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700" title="Threads needing user action (needs-reply + review)">Inbox</button>
+          <button onclick="setFilter('needs-reply')" id="tab-needs-reply" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700" title="Threads where user input is needed">Needs Reply</button>
+          <button onclick="setFilter('review')" id="tab-review" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700" title="Threads with completion reports to review">Review</button>
+          <button onclick="setFilter('waiting')" id="tab-waiting" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700" title="Threads where AI should respond">Waiting</button>
           <button onclick="setFilter('resolved')" id="tab-resolved" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Resolved</button>
         </div>
         <div class="flex-1"></div>
@@ -81,15 +83,9 @@
       let openThreadId = null;
 
       // ── Status helpers ─────────────────────────────────────────────
-      function getDisplayStatus(thread) {
-        if (thread.status === 'resolved') return 'resolved';
-        if (!thread.messages || thread.messages.length === 0) return 'active';
-        const last = thread.messages[thread.messages.length - 1];
-        return last.sender === 'ai' ? 'needs-reply' : 'waiting';
-      }
-
       const STATUS_STYLES = {
         'needs-reply': { bg: '#713f12', color: '#fde68a', border: '#92400e' },
+        'review':      { bg: '#581c87', color: '#d8b4fe', border: '#6b21a8' },
         'waiting':     { bg: '#164e63', color: '#67e8f9', border: '#155e75' },
         'active':      { bg: '#1f2937', color: '#d1d5db', border: '#374151' },
         'resolved':    { bg: '#111827', color: '#6b7280', border: '#1f2937' },
@@ -150,7 +146,8 @@
 
       function filterThreads(threads) {
         if (currentFilter === 'all') return threads;
-        return threads.filter(t => getDisplayStatus(t) === currentFilter);
+        if (currentFilter === 'inbox') return threads.filter(t => t.status === 'needs-reply' || t.status === 'review');
+        return threads.filter(t => t.status === currentFilter);
       }
 
       // ── Thread list ────────────────────────────────────────────────
@@ -167,7 +164,7 @@
         const sorted = [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
         sorted.forEach(thread => {
-          const status = getDisplayStatus(thread);
+          const status = thread.status;
           const lastMsg = thread.messages && thread.messages.length > 0
             ? thread.messages[thread.messages.length - 1]
             : null;
@@ -237,8 +234,6 @@
         const thread = allThreads.find(t => t.id === id);
         if (!thread) { detailEl.innerHTML = ''; return; }
 
-        const status = getDisplayStatus(thread);
-
         detailEl.innerHTML = '';
         detailEl.style.cssText = 'background:#1f2937;border:1px solid #374151;border-radius:8px;overflow:hidden;margin-top:8px;';
 
@@ -258,7 +253,7 @@
         titleEl.style.cssText = 'font-weight:700;font-size:0.875rem;color:#f9fafb;flex:1;';
         titleEl.textContent = thread.title;
 
-        const badge = makeStatusBadge(status);
+        const badge = makeStatusBadge(thread.status);
 
         const spacer = document.createElement('div');
         spacer.style.flex = '1';
@@ -386,8 +381,50 @@
           }
         }
 
-        userBtn.addEventListener('click', () => { selectedSender = 'user'; updateSenderButtons(); });
-        aiBtn.addEventListener('click', () => { selectedSender = 'ai'; updateSenderButtons(); });
+        // Status selector (visible when sender is 'ai')
+        let selectedStatus = '';
+
+        const statusRow = document.createElement('div');
+        statusRow.style.cssText = 'display:none;align-items:center;gap:8px;margin-top:4px;';
+
+        const statusLabel = document.createElement('span');
+        statusLabel.style.cssText = 'font-size:0.75rem;color:#9ca3af;';
+        statusLabel.textContent = 'Status:';
+
+        const statusToggle = document.createElement('div');
+        statusToggle.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;';
+
+        const statusOptions = [
+          { value: '', label: 'no change', tip: 'Keep current thread status' },
+          { value: 'needs-reply', label: 'needs-reply', tip: 'User must reply or decide' },
+          { value: 'review', label: 'review', tip: 'User should review completion' },
+        ];
+
+        const statusBtns = statusOptions.map(opt => {
+          const btn = document.createElement('button');
+          btn.textContent = opt.label;
+          btn.title = opt.tip;
+          btn.dataset.value = opt.value;
+          btn.addEventListener('click', () => { selectedStatus = opt.value; updateStatusButtons(); });
+          statusToggle.appendChild(btn);
+          return btn;
+        });
+
+        function updateStatusButtons() {
+          statusBtns.forEach(btn => {
+            const isActive = btn.dataset.value === selectedStatus;
+            btn.style.cssText = `font-size:0.7rem;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid ${isActive ? '#6b21a8' : '#374151'};background:${isActive ? '#581c87' : 'transparent'};color:${isActive ? '#d8b4fe' : '#6b7280'};`;
+          });
+        }
+
+        updateStatusButtons();
+        statusRow.appendChild(statusLabel);
+        statusRow.appendChild(statusToggle);
+
+        function showStatusRow() { statusRow.style.display = selectedSender === 'ai' ? 'flex' : 'none'; }
+
+        userBtn.addEventListener('click', () => { selectedSender = 'user'; selectedStatus = ''; updateSenderButtons(); updateStatusButtons(); showStatusRow(); });
+        aiBtn.addEventListener('click', () => { selectedSender = 'ai'; updateSenderButtons(); showStatusRow(); });
 
         senderToggle.appendChild(userBtn);
         senderToggle.appendChild(aiBtn);
@@ -412,10 +449,12 @@
           if (!content) { msgInput.focus(); return; }
           sendBtn.disabled = true;
           sendBtn.style.opacity = '0.5';
+          const payload = { dir: GUI_DIR, content, from: selectedSender };
+          if (selectedSender === 'ai' && selectedStatus) payload.status = selectedStatus;
           await fetch(`/api/threads/${thread.id}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dir: GUI_DIR, content, from: selectedSender }),
+            body: JSON.stringify(payload),
           });
           msgInput.value = '';
           sendBtn.disabled = false;
@@ -438,6 +477,7 @@
         bottomRow.appendChild(sendBtn);
 
         formRow.appendChild(senderRow);
+        formRow.appendChild(statusRow);
         formRow.appendChild(bottomRow);
         formArea.appendChild(formRow);
         detailEl.appendChild(formArea);

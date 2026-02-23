@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-23
+
+### Changed
+
+- **BREAKING**: Thread status is now explicit instead of auto-computed from last message sender
+  - Stored statuses expanded: `active`, `resolved`, `waiting`, `needs-reply`, `review`
+  - AI messages no longer auto-set status to `needs-reply`; status is unchanged by default
+  - User messages auto-set status to `waiting` (AI should respond)
+- `inbox` command now shows both `needs-reply` and `review` threads (user action required)
+- `list --status` accepts: `active`, `resolved`, `waiting`, `needs-reply`, `review`, `inbox`
+
+### Added
+
+- `--status` flag on `add` command to explicitly set thread status (e.g., `--status needs-reply`, `--status review`)
+- `review` status for threads that need user review (completion reports, results)
+- `inbox` meta-filter that matches `needs-reply` and `review` threads
+- GUI: "Inbox" filter tab, "Review" filter tab, status selector for AI messages
+- GUI: purple badge for `review` status, tooltips on filter tabs
+
 ## [0.1.1] - 2026-02-23
 
 ### Added
