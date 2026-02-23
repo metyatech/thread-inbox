@@ -1,6 +1,10 @@
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
 import { readThreads, writeThreads } from './storage.js';
 import { Thread, ThreadFilters, ThreadStatus } from './types.js';
+
+// Use alphanumeric-only alphabet so IDs never start with '-' or '_',
+// which would be misinterpreted as CLI option flags by commander.
+const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 8);
 
 export async function createThread(dir: string, title: string): Promise<Thread> {
   const threads = await readThreads(dir);

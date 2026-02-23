@@ -231,4 +231,7 @@ program
     startGui(options.dir, parseInt(options.port, 10));
   });
 
-program.parse();
+program.parseAsync().catch((error: Error) => {
+  console.error('Error:', error.message);
+  process.exit(1);
+});
