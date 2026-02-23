@@ -16,7 +16,7 @@ const program = new Command();
 program
   .name('thread-inbox')
   .description('Threaded conversation inbox for managing user-AI interactions')
-  .version('0.1.0');
+  .version('0.1.1');
 
 program
   .command('new <title>')
