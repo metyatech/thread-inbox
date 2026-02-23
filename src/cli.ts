@@ -9,6 +9,7 @@ import {
   purgeThreads,
 } from './threads.js';
 import { formatThreadList, formatThread } from './format.js';
+import { startGui } from './gui.js';
 
 const program = new Command();
 
@@ -189,6 +190,15 @@ program
       console.error('Error:', (error as Error).message);
       process.exit(1);
     }
+  });
+
+program
+  .command('gui')
+  .description('Start the web GUI')
+  .option('--dir <path>', 'Working directory', process.cwd())
+  .option('--port <port>', 'Port to listen on', '3334')
+  .action((options: { dir: string; port: string }) => {
+    startGui(options.dir, parseInt(options.port, 10));
   });
 
 program.parse();

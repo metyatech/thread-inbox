@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thread Inbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .status-badge {
+        font-size: 0.65rem;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+      }
+      .msg-content {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .thread-row {
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      .thread-row:hover {
+        background: #1f2937;
+      }
+      textarea {
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen" style="font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-10 border-b border-gray-700 px-4 py-3 flex items-center gap-3 flex-wrap" style="background:#030712;">
+      <h1 class="font-bold text-white text-base">Thread Inbox</h1>
+      <span id="dir-label" class="text-gray-500 text-xs truncate flex-1" style="min-width:0;"></span>
+      <button onclick="loadThreads()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded flex-shrink-0">↻ Refresh</button>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-5xl mx-auto px-4 py-6">
+      <!-- Filter tabs -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <div id="filter-tabs" class="flex gap-1">
+          <button onclick="setFilter('all')" id="tab-all" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">All</button>
+          <button onclick="setFilter('needs-reply')" id="tab-needs-reply" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Needs Reply</button>
+          <button onclick="setFilter('waiting')" id="tab-waiting" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Waiting</button>
+          <button onclick="setFilter('resolved')" id="tab-resolved" class="filter-tab text-xs px-3 py-1 rounded border border-gray-600 text-gray-300 hover:bg-gray-700">Resolved</button>
+        </div>
+        <div class="flex-1"></div>
+        <button onclick="showNewThreadForm()" class="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded flex-shrink-0">+ New Thread</button>
+        <button onclick="doPurge()" id="purge-btn" class="text-xs bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 px-3 py-1 rounded flex-shrink-0">Purge resolved</button>
+      </div>
+
+      <!-- New thread form (hidden by default) -->
+      <div id="new-thread-form" class="hidden mb-4 bg-gray-800 border border-gray-700 rounded-lg p-4">
+        <div class="flex gap-2 items-center flex-wrap">
+          <input id="new-thread-title" type="text" placeholder="Thread title..." class="flex-1 min-w-40 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-1.5 text-sm outline-none focus:border-blue-500" />
+          <button onclick="submitNewThread()" class="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded">Create</button>
+          <button onclick="hideNewThreadForm()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Thread list -->
+      <div id="thread-list"></div>
+
+      <!-- Thread detail panel -->
+      <div id="thread-detail" class="hidden"></div>
+    </main>
+
+    <script>
+      // Injected by server
+      const GUI_DIR = __GUI_DIR__;
+
+      document.getElementById('dir-label').textContent = GUI_DIR;
+
+      let currentFilter = 'all';
+      let allThreads = [];
+      let openThreadId = null;
+
+      // ── Status helpers ─────────────────────────────────────────────
+      function getDisplayStatus(thread) {
+        if (thread.status === 'resolved') return 'resolved';
+        if (!thread.messages || thread.messages.length === 0) return 'active';
+        const last = thread.messages[thread.messages.length - 1];
+        return last.sender === 'ai' ? 'needs-reply' : 'waiting';
+      }
+
+      const STATUS_STYLES = {
+        'needs-reply': { bg: '#713f12', color: '#fde68a', border: '#92400e' },
+        'waiting':     { bg: '#164e63', color: '#67e8f9', border: '#155e75' },
+        'active':      { bg: '#1f2937', color: '#d1d5db', border: '#374151' },
+        'resolved':    { bg: '#111827', color: '#6b7280', border: '#1f2937' },
+      };
+
+      function makeStatusBadge(status) {
+        const s = STATUS_STYLES[status] || STATUS_STYLES['active'];
+        const span = document.createElement('span');
+        span.className = 'status-badge';
+        span.textContent = status;
+        span.style.cssText = `background:${s.bg};color:${s.color};border:1px solid ${s.border};`;
+        return span;
+      }
+
+      // ── Age formatting ─────────────────────────────────────────────
+      function formatAge(iso) {
+        if (!iso) return '';
+        const diffMs = Date.now() - new Date(iso).getTime();
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHour / 24);
+        const diffWeek = Math.floor(diffDay / 7);
+        const diffMonth = Math.floor(diffDay / 30);
+        if (diffMonth > 0) return `${diffMonth}mo`;
+        if (diffWeek > 0) return `${diffWeek}w`;
+        if (diffDay > 0) return `${diffDay}d`;
+        if (diffHour > 0) return `${diffHour}h`;
+        if (diffMin > 0) return `${diffMin}m`;
+        return `${diffSec}s`;
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '';
+        try {
+          return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+        } catch {
+          return iso;
+        }
+      }
+
+      // ── Filter ─────────────────────────────────────────────────────
+      function setFilter(f) {
+        currentFilter = f;
+        document.querySelectorAll('.filter-tab').forEach(btn => {
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        });
+        const active = document.getElementById(`tab-${f}`);
+        if (active) {
+          active.style.background = '#374151';
+          active.style.color = '#f9fafb';
+          active.style.borderColor = '#6b7280';
+        }
+        renderThreadList();
+      }
+
+      function filterThreads(threads) {
+        if (currentFilter === 'all') return threads;
+        return threads.filter(t => getDisplayStatus(t) === currentFilter);
+      }
+
+      // ── Thread list ────────────────────────────────────────────────
+      function renderThreadList() {
+        const listEl = document.getElementById('thread-list');
+        const filtered = filterThreads(allThreads);
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-16">No threads found.</p>';
+          return;
+        }
+
+        listEl.innerHTML = '';
+        const sorted = [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+        sorted.forEach(thread => {
+          const status = getDisplayStatus(thread);
+          const lastMsg = thread.messages && thread.messages.length > 0
+            ? thread.messages[thread.messages.length - 1]
+            : null;
+
+          const row = document.createElement('div');
+          row.className = 'thread-row border border-gray-700 rounded-lg mb-2 px-4 py-3';
+          row.style.background = openThreadId === thread.id ? '#1f2937' : '#111827';
+
+          const top = document.createElement('div');
+          top.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+
+          const badge = makeStatusBadge(status);
+
+          const title = document.createElement('span');
+          title.style.cssText = 'font-size:0.875rem;color:#f3f4f6;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          title.textContent = thread.title;
+
+          const age = document.createElement('span');
+          age.style.cssText = 'font-size:0.7rem;color:#6b7280;flex-shrink:0;';
+          age.textContent = formatAge(thread.updatedAt);
+
+          top.appendChild(badge);
+          top.appendChild(title);
+          top.appendChild(age);
+
+          row.appendChild(top);
+
+          if (lastMsg) {
+            const preview = document.createElement('div');
+            preview.style.cssText = 'font-size:0.75rem;color:#9ca3af;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            const senderLabel = lastMsg.sender === 'ai' ? '[ai]' : '[user]';
+            const previewText = lastMsg.content.replace(/\n/g, ' ').slice(0, 80);
+            preview.textContent = `${senderLabel} ${previewText}`;
+            row.appendChild(preview);
+          }
+
+          row.addEventListener('click', () => {
+            if (openThreadId === thread.id) {
+              closeDetail();
+            } else {
+              openDetail(thread.id);
+            }
+          });
+
+          listEl.appendChild(row);
+        });
+      }
+
+      // ── Thread detail ──────────────────────────────────────────────
+      function closeDetail() {
+        openThreadId = null;
+        document.getElementById('thread-detail').classList.add('hidden');
+        document.getElementById('thread-detail').innerHTML = '';
+        renderThreadList();
+      }
+
+      async function openDetail(id) {
+        openThreadId = id;
+        renderThreadList();
+        await renderDetail(id);
+        document.getElementById('thread-detail').classList.remove('hidden');
+        document.getElementById('thread-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      async function renderDetail(id) {
+        const detailEl = document.getElementById('thread-detail');
+        const thread = allThreads.find(t => t.id === id);
+        if (!thread) { detailEl.innerHTML = ''; return; }
+
+        const status = getDisplayStatus(thread);
+
+        detailEl.innerHTML = '';
+        detailEl.style.cssText = 'background:#1f2937;border:1px solid #374151;border-radius:8px;overflow:hidden;margin-top:8px;';
+
+        // Detail header
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 16px;background:#111827;border-bottom:1px solid #374151;flex-wrap:wrap;';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.style.cssText = 'color:#6b7280;font-size:1.25rem;line-height:1;background:none;border:none;cursor:pointer;flex-shrink:0;padding:0 4px;';
+        closeBtn.title = 'Close';
+        closeBtn.onmouseenter = () => { closeBtn.style.color = '#f87171'; };
+        closeBtn.onmouseleave = () => { closeBtn.style.color = '#6b7280'; };
+        closeBtn.addEventListener('click', closeDetail);
+
+        const titleEl = document.createElement('span');
+        titleEl.style.cssText = 'font-weight:700;font-size:0.875rem;color:#f9fafb;flex:1;';
+        titleEl.textContent = thread.title;
+
+        const badge = makeStatusBadge(status);
+
+        const spacer = document.createElement('div');
+        spacer.style.flex = '1';
+
+        const actionBtn = document.createElement('button');
+        if (thread.status === 'resolved') {
+          actionBtn.textContent = '↺ Reopen';
+          actionBtn.style.cssText = 'font-size:0.75rem;padding:4px 10px;border-radius:4px;border:none;cursor:pointer;background:#1d4ed8;color:#fff;flex-shrink:0;';
+          actionBtn.addEventListener('click', async () => {
+            await fetch(`/api/threads/${thread.id}/reopen`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dir: GUI_DIR }),
+            });
+            await loadThreads();
+            await renderDetail(id);
+          });
+        } else {
+          actionBtn.textContent = '✓ Resolve';
+          actionBtn.style.cssText = 'font-size:0.75rem;padding:4px 10px;border-radius:4px;border:none;cursor:pointer;background:#374151;color:#d1d5db;flex-shrink:0;';
+          actionBtn.onmouseenter = () => { actionBtn.style.background = '#166534'; actionBtn.style.color = '#86efac'; };
+          actionBtn.onmouseleave = () => { actionBtn.style.background = '#374151'; actionBtn.style.color = '#d1d5db'; };
+          actionBtn.addEventListener('click', async () => {
+            await fetch(`/api/threads/${thread.id}/resolve`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dir: GUI_DIR }),
+            });
+            await loadThreads();
+            await renderDetail(id);
+          });
+        }
+
+        const idLabel = document.createElement('span');
+        idLabel.style.cssText = 'font-size:0.7rem;color:#6b7280;flex-shrink:0;';
+        idLabel.textContent = `#${thread.id}`;
+
+        header.appendChild(closeBtn);
+        header.appendChild(titleEl);
+        header.appendChild(badge);
+        header.appendChild(spacer);
+        header.appendChild(actionBtn);
+        header.appendChild(idLabel);
+        detailEl.appendChild(header);
+
+        // Messages area
+        const msgArea = document.createElement('div');
+        msgArea.style.cssText = 'padding:12px 16px;display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;';
+
+        if (!thread.messages || thread.messages.length === 0) {
+          const empty = document.createElement('p');
+          empty.style.cssText = 'color:#6b7280;font-size:0.875rem;text-align:center;padding:24px 0;';
+          empty.textContent = 'No messages yet. Add one below.';
+          msgArea.appendChild(empty);
+        } else {
+          thread.messages.forEach(msg => {
+            const isAi = msg.sender === 'ai';
+            const bubble = document.createElement('div');
+            bubble.style.cssText = `background:${isAi ? '#0e2233' : '#0d2b16'};border:1px solid ${isAi ? '#164e63' : '#14532d'};border-radius:6px;padding:8px 12px;`;
+
+            const meta = document.createElement('div');
+            meta.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
+
+            const senderBadge = document.createElement('span');
+            senderBadge.style.cssText = `font-size:0.7rem;font-weight:700;color:${isAi ? '#67e8f9' : '#86efac'};`;
+            senderBadge.textContent = isAi ? '[ai]' : '[user]';
+
+            const ts = document.createElement('span');
+            ts.style.cssText = 'font-size:0.65rem;color:#6b7280;';
+            ts.textContent = formatDate(msg.at);
+
+            meta.appendChild(senderBadge);
+            meta.appendChild(ts);
+
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+            content.style.cssText = 'font-size:0.8rem;color:#e5e7eb;line-height:1.5;';
+            content.textContent = msg.content;
+
+            bubble.appendChild(meta);
+            bubble.appendChild(content);
+            msgArea.appendChild(bubble);
+          });
+
+          // Scroll to bottom
+          setTimeout(() => { msgArea.scrollTop = msgArea.scrollHeight; }, 0);
+        }
+
+        detailEl.appendChild(msgArea);
+
+        // Add message form
+        const formArea = document.createElement('div');
+        formArea.style.cssText = 'padding:12px 16px;border-top:1px solid #374151;background:#111827;';
+
+        const formRow = document.createElement('div');
+        formRow.style.cssText = 'display:flex;gap-8px;flex-direction:column;gap:8px;';
+
+        const senderRow = document.createElement('div');
+        senderRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
+        const senderLabel = document.createElement('span');
+        senderLabel.style.cssText = 'font-size:0.75rem;color:#9ca3af;';
+        senderLabel.textContent = 'From:';
+
+        const senderToggle = document.createElement('div');
+        senderToggle.style.cssText = 'display:flex;gap:4px;';
+
+        let selectedSender = 'user';
+
+        const userBtn = document.createElement('button');
+        userBtn.textContent = 'user';
+        userBtn.style.cssText = 'font-size:0.7rem;px:2;padding:2px 8px;border-radius:4px;border:1px solid #166534;background:#0d2b16;color:#86efac;cursor:pointer;';
+
+        const aiBtn = document.createElement('button');
+        aiBtn.textContent = 'ai';
+        aiBtn.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:4px;border:1px solid #374151;background:transparent;color:#6b7280;cursor:pointer;';
+
+        function updateSenderButtons() {
+          if (selectedSender === 'user') {
+            userBtn.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:4px;border:1px solid #166534;background:#0d2b16;color:#86efac;cursor:pointer;';
+            aiBtn.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:4px;border:1px solid #374151;background:transparent;color:#6b7280;cursor:pointer;';
+          } else {
+            aiBtn.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:4px;border:1px solid #155e75;background:#0e2233;color:#67e8f9;cursor:pointer;';
+            userBtn.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:4px;border:1px solid #374151;background:transparent;color:#6b7280;cursor:pointer;';
+          }
+        }
+
+        userBtn.addEventListener('click', () => { selectedSender = 'user'; updateSenderButtons(); });
+        aiBtn.addEventListener('click', () => { selectedSender = 'ai'; updateSenderButtons(); });
+
+        senderToggle.appendChild(userBtn);
+        senderToggle.appendChild(aiBtn);
+        senderRow.appendChild(senderLabel);
+        senderRow.appendChild(senderToggle);
+
+        const msgInput = document.createElement('textarea');
+        msgInput.placeholder = 'Type a message... (Ctrl+Enter to send)';
+        msgInput.rows = 3;
+        msgInput.style.cssText = 'width:100%;background:#374151;color:#f3f4f6;border:1px solid #6b7280;border-radius:4px;padding:8px 10px;font-size:0.8rem;outline:none;font-family:inherit;';
+        msgInput.addEventListener('focus', () => { msgInput.style.borderColor = '#3b82f6'; });
+        msgInput.addEventListener('blur', () => { msgInput.style.borderColor = '#6b7280'; });
+
+        const sendBtn = document.createElement('button');
+        sendBtn.textContent = 'Send';
+        sendBtn.style.cssText = 'align-self:flex-end;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:6px 16px;font-size:0.8rem;cursor:pointer;flex-shrink:0;';
+        sendBtn.onmouseenter = () => { sendBtn.style.background = '#1d4ed8'; };
+        sendBtn.onmouseleave = () => { sendBtn.style.background = '#2563eb'; };
+
+        const doSend = async () => {
+          const content = msgInput.value.trim();
+          if (!content) { msgInput.focus(); return; }
+          sendBtn.disabled = true;
+          sendBtn.style.opacity = '0.5';
+          await fetch(`/api/threads/${thread.id}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dir: GUI_DIR, content, from: selectedSender }),
+          });
+          msgInput.value = '';
+          sendBtn.disabled = false;
+          sendBtn.style.opacity = '1';
+          await loadThreads();
+          await renderDetail(id);
+        };
+
+        sendBtn.addEventListener('click', doSend);
+        msgInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            doSend();
+          }
+        });
+
+        const bottomRow = document.createElement('div');
+        bottomRow.style.cssText = 'display:flex;gap:8px;align-items:flex-end;';
+        bottomRow.appendChild(msgInput);
+        bottomRow.appendChild(sendBtn);
+
+        formRow.appendChild(senderRow);
+        formRow.appendChild(bottomRow);
+        formArea.appendChild(formRow);
+        detailEl.appendChild(formArea);
+      }
+
+      // ── New thread form ────────────────────────────────────────────
+      function showNewThreadForm() {
+        document.getElementById('new-thread-form').classList.remove('hidden');
+        setTimeout(() => document.getElementById('new-thread-title').focus(), 0);
+      }
+
+      function hideNewThreadForm() {
+        document.getElementById('new-thread-form').classList.add('hidden');
+        document.getElementById('new-thread-title').value = '';
+      }
+
+      async function submitNewThread() {
+        const title = document.getElementById('new-thread-title').value.trim();
+        if (!title) { document.getElementById('new-thread-title').focus(); return; }
+        const res = await fetch('/api/threads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dir: GUI_DIR, title }),
+        });
+        if (res.ok) {
+          const thread = await res.json();
+          hideNewThreadForm();
+          await loadThreads();
+          openDetail(thread.id);
+        }
+      }
+
+      document.getElementById('new-thread-title').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitNewThread();
+        if (e.key === 'Escape') hideNewThreadForm();
+      });
+
+      // ── Purge ──────────────────────────────────────────────────────
+      async function doPurge() {
+        const resolved = allThreads.filter(t => t.status === 'resolved');
+        if (resolved.length === 0) { alert('No resolved threads to purge.'); return; }
+        if (!confirm(`Purge ${resolved.length} resolved thread(s)?`)) return;
+        await fetch('/api/threads/purge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dir: GUI_DIR }),
+        });
+        if (openThreadId && resolved.find(t => t.id === openThreadId)) {
+          closeDetail();
+        }
+        loadThreads();
+      }
+
+      // ── Data fetching ──────────────────────────────────────────────
+      async function loadThreads() {
+        try {
+          const res = await fetch(`/api/threads?dir=${encodeURIComponent(GUI_DIR)}`);
+          if (res.ok) {
+            allThreads = await res.json();
+            renderThreadList();
+            if (openThreadId) {
+              const still = allThreads.find(t => t.id === openThreadId);
+              if (still) {
+                await renderDetail(openThreadId);
+              } else {
+                closeDetail();
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load threads:', e);
+        }
+      }
+
+      // Init
+      setFilter('all');
+      loadThreads();
+      setInterval(loadThreads, 5000);
+    </script>
+  </body>
+</html>
