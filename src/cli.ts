@@ -138,6 +138,10 @@ program
       options: { from: string; status?: string; json?: boolean; dir: string },
     ) => {
       try {
+        if (options.from !== 'ai' && options.from !== 'user') {
+          process.stderr.write(`Error: --from must be 'ai' or 'user', got '${options.from}'\n`);
+          process.exit(1);
+        }
         const sender = options.from as 'ai' | 'user';
         const status = options.status as
           | 'waiting'

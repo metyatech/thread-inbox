@@ -12,7 +12,15 @@ export async function readThreads(dir: string): Promise<Thread[]> {
     return content
       .split('\n')
       .filter((line) => line.trim())
-      .map((line) => JSON.parse(line));
+      .map((line) => {
+        try {
+          return JSON.parse(line) as Thread;
+        } catch {
+          process.stderr.write(`Warning: skipping malformed line in ${filePath}: ${line}\n`);
+          return null;
+        }
+      })
+      .filter((thread): thread is Thread => thread !== null);
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return [];
