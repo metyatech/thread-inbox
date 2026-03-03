@@ -28,7 +28,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "verify": "npm run format:check && npm run lint && npm run build && npm run test",
@@ -49,6 +49,8 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "compose-agentsmd": "^3.5.1",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",

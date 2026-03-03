@@ -1,17 +1,15 @@
-# thread-inbox
+# @metyatech/thread-inbox
 
 > Threaded conversation inbox for managing user-AI interactions
 
 A local CLI tool that tracks threaded conversations between a user and AI agents. Each thread represents a topic (question, request, discussion). Messages are added to threads. The tool shows what needs attention, what's waiting, and what's resolved.
 
-## Features
+[![CI](https://github.com/metyatech/thread-inbox/actions/workflows/ci.yml/badge.svg)](https://github.com/metyatech/thread-inbox/actions/workflows/ci.yml)
 
-- 📋 **Thread Management** - Create, list, and organize conversation threads
-- 💬 **Message Tracking** - Add messages from user or AI with timestamps
-- 🎯 **Smart Filtering** - Filter by status (active, resolved, needs-reply, waiting)
-- 📦 **Simple Storage** - Single JSONL file (`.threads.jsonl`) in your working directory
-- 🎨 **Colored Output** - Easy-to-read colored status indicators
-- 📊 **JSON Support** - All commands support `--json` for machine-readable output
+## Prerequisites
+
+- **Node.js**: >= 18.0.0
+- **Storage**: Local filesystem (JSONL)
 
 ## Installation
 
@@ -21,187 +19,145 @@ npm install -g @metyatech/thread-inbox
 
 ## Usage
 
-### Create a new thread
+### Summary of Commands
 
-```bash
-thread-inbox new "Topics bulk assignment"
-# Output: abc12345 (thread ID)
+| Command   | Description                | Example                             |
+| --------- | -------------------------- | ----------------------------------- |
+| `new`     | Create a new thread        | `thread-inbox new "Plan topics"`    |
+| `list`    | List all threads           | `thread-inbox list --status active` |
+| `inbox`   | List threads needing reply | `thread-inbox inbox`                |
+| `show`    | Show thread details        | `thread-inbox show abc12345`        |
+| `add`     | Add a message              | `thread-inbox add abc12345 "Ok"`    |
+| `resolve` | Mark as resolved           | `thread-inbox resolve abc12345`     |
+| `reopen`  | Reopen a thread            | `thread-inbox reopen abc12345`      |
+| `purge`   | Remove resolved threads    | `thread-inbox purge`                |
 
-# With JSON output
-thread-inbox new "Topics bulk assignment" --json
-```
+### Detailed Usage
 
-### List threads
+#### `new <title>`
 
-```bash
-# List all threads
-thread-inbox list
+Create a new thread with a descriptive title.
 
-# Filter by status
-thread-inbox list --status active
-thread-inbox list --status resolved
-thread-inbox list --status needs-reply  # Active threads where AI sent last message
-thread-inbox list --status waiting      # Active threads where user sent last message
+- **Arguments**:
+  - `<title>` (Required): The title of the conversation thread.
+- **Options**:
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output the created thread object as JSON.
+- **Example**:
+  ```bash
+  thread-inbox new "Topics bulk assignment"
+  # Output: abc12345 (thread ID)
+  ```
 
-# JSON output
-thread-inbox list --json
-```
+#### `list`
 
-Example output:
+List threads based on status and directory.
 
-```
-ID        STATUS       TITLE                          LAST MESSAGE        AGE
-abc12345  needs-reply  Topics bulk assignment          "ok" (user, 5m)    2h
-def67890  waiting      Auto-purge design              "Designing..." (ai) 1d
-ghi11111  resolved     Pre-commit hook setup          "Done" (ai, 3d)     5d
-```
+- **Options**:
+  - `--status <status>`: Filter by status (`active`, `resolved`, `needs-reply`, `waiting`).
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output as JSON list.
+- **Example**:
+  ```bash
+  thread-inbox list --status needs-reply
+  ```
 
-### Show inbox (threads needing reply)
+#### `inbox`
 
-```bash
-thread-inbox inbox
-# Alias for: thread-inbox list --status needs-reply
-```
+Alias for `list --status needs-reply`. Shows threads where the AI sent the last message and requires user input.
 
-### Show thread details
+- **Options**: Same as `list`.
+- **Example**:
+  ```bash
+  thread-inbox inbox
+  ```
 
-```bash
-thread-inbox show abc12345
+#### `show <id>`
 
-# JSON output
-thread-inbox show abc12345 --json
-```
+Display full conversation history for a specific thread.
 
-Example output:
+- **Arguments**:
+  - `<id>` (Required): The thread ID.
+- **Options**:
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output the thread object as JSON.
+- **Example**:
+  ```bash
+  thread-inbox show abc12345
+  ```
 
-```
-Thread: Topics bulk assignment
-ID: abc12345
-Status: active
-Created: 2026-02-23T00:00:00.000Z
-Updated: 2026-02-23T02:05:00.000Z
+#### `add <id> <message>`
 
-Messages:
-[ai] 2026-02-23T00:00:00.000Z
-  Proposed 7 categories for GitHub Topics...
+Add a new message to an existing thread.
 
-[user] 2026-02-23T02:05:00.000Z
-  ok
-```
+- **Arguments**:
+  - `<id>` (Required): The thread ID.
+  - `<message>` (Required): The message content.
+- **Options**:
+  - `--from <sender>`: Sender type, either `user` or `ai` (default: `user`).
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output the updated thread object as JSON.
+- **Example**:
+  ```bash
+  thread-inbox add abc12345 "Looks good to me"
+  thread-inbox add abc12345 "I'll proceed with that plan" --from ai
+  ```
 
-### Add a message
+#### `resolve <id>` / `reopen <id>`
 
-```bash
-# Add user message (default)
-thread-inbox add abc12345 "Looks good to me"
+Change the status of a thread.
 
-# Add AI message
-thread-inbox add abc12345 "I'll proceed with that plan" --from ai
-```
+- **Arguments**:
+  - `<id>` (Required): The thread ID.
+- **Options**:
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output the updated thread object as JSON.
+- **Example**:
+  ```bash
+  thread-inbox resolve abc12345
+  thread-inbox reopen abc12345
+  ```
 
-### Resolve a thread
+#### `purge`
 
-```bash
-thread-inbox resolve abc12345
-```
+Permanently remove all threads marked as `resolved`.
 
-### Reopen a resolved thread
-
-```bash
-thread-inbox reopen abc12345
-```
-
-### Purge resolved threads
-
-```bash
-# Remove all resolved threads
-thread-inbox purge
-
-# Dry run (see what would be purged)
-thread-inbox purge --dry-run
-```
-
-### Use a custom directory
-
-All commands support `--dir <path>` to specify a working directory:
-
-```bash
-thread-inbox new "Test thread" --dir ~/projects/my-app
-thread-inbox list --dir ~/projects/my-app
-```
+- **Options**:
+  - `--dry-run`: Show which threads would be removed without deleting them.
+  - `--dir <path>`: Working directory (default: current working directory).
+  - `--json`: Output the list of purged threads as JSON.
+- **Example**:
+  ```bash
+  thread-inbox purge --dry-run
+  ```
 
 ## Data Model
 
-Threads are stored in a single JSONL file (`.threads.jsonl`) in the working directory.
-
-Each line represents a thread:
-
-```json
-{
-  "id": "abc12345",
-  "title": "Topics bulk assignment",
-  "status": "active",
-  "messages": [
-    {
-      "sender": "ai",
-      "content": "Proposed 7 categories for GitHub Topics...",
-      "at": "2026-02-23T02:00:00.000Z"
-    },
-    {
-      "sender": "user",
-      "content": "ok",
-      "at": "2026-02-23T02:05:00.000Z"
-    }
-  ],
-  "createdAt": "2026-02-23T02:00:00.000Z",
-  "updatedAt": "2026-02-23T02:05:00.000Z"
-}
-```
+Threads are stored in a single JSONL file (`.threads.jsonl`) in the specified working directory.
 
 ### Status Logic
 
-- **active** - Thread is open
-- **resolved** - Thread is closed
-- **needs-reply** - Active thread where last message is from AI (user should respond)
-- **waiting** - Active thread where last message is from user (AI should respond)
+- **active**: Thread is open.
+- **resolved**: Thread is closed.
+- **needs-reply**: Active thread where the last message is from the AI.
+- **waiting**: Active thread where the last message is from the user.
 
 ## Development
 
-### Install dependencies
+- **Installation**: `npm install`
+- **Build**: `npm run build`
+- **Verification**: `npm run verify` (runs format check, linting, build, and tests)
+- **Format**: `npm run format`
+- **Test**: `npm run test`
 
-```bash
-npm install
-```
+## Compliance & Documentation
 
-### Build
+This repository follows [metyatech's standards](AGENTS.md).
 
-```bash
-npm run build
-```
-
-### Run tests
-
-```bash
-npm test
-```
-
-### Lint
-
-```bash
-npm run lint
-```
-
-### Format
-
-```bash
-npm run format
-```
-
-### Verify (format check + lint + build + test)
-
-```bash
-npm run verify
-```
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [License](LICENSE)
 
 ## License
 

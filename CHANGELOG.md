@@ -11,14 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of `@metyatech/thread-inbox`
 - CLI tool (`thread-inbox`) for managing threaded conversation inboxes
-- `create` command: create a new thread with a title
-- `list` command: list all threads (with optional `--all` flag to include archived)
-- `read` command: display messages in a thread
-- `reply` command: add a reply to a thread
-- `archive` command: archive a thread
-- `delete` command: delete a thread permanently
-- JSONL-based local storage in `~/.thread-inbox/threads.jsonl`
+- `new` command: create a new thread with a title
+- `list` command: list threads with optional status filtering
+- `inbox` command: list threads needing reply (alias for `list --status needs-reply`)
+- `show` command: display messages in a thread
+- `add` command: add a message to a thread
+- `resolve` command: mark a thread as resolved
+- `reopen` command: reopen a resolved thread
+- `purge` command: remove all resolved threads
+- JSONL-based local storage in `.threads.jsonl` in the working directory
 - Colorized terminal output via chalk
-- 59 unit tests with vitest
+- Unit tests with vitest
 - TypeScript ESM build via tsup
 - ESLint + Prettier code quality setup
