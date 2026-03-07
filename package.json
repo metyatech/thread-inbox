@@ -28,7 +28,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts",
+    "lint": "cross-env ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.ts\" --max-warnings 0",
     "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
     "verify": "npm run format:check && npm run lint && npm run build && npm run test",
@@ -42,20 +42,24 @@
   "lint-staged": {
     "src/**/*.ts": [
       "prettier --check",
-      "eslint --ext .ts"
+      "cross-env ESLINT_USE_FLAT_CONFIG=false eslint --max-warnings 0"
     ]
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "compose-agentsmd": "^3.5.1",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
+    "jsdom": "^24.0.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^1.4.0",
+    "vitest-axe": "^0.1.0"
   },
   "overrides": {
     "esbuild": "^0.27.3"
