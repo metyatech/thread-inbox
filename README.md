@@ -238,6 +238,14 @@ npm run format
 npm run verify
 ```
 
+## Versioning
+
+This project follows [Semantic Versioning (SemVer)](https://semver.org/).
+
+- **Major** (x.0.0): Breaking changes that require user intervention or change core CLI/API behavior.
+- **Minor** (0.x.0): New features, commands, or significant enhancements that are backward compatible.
+- **Patch** (0.0.x): Bug fixes, documentation updates, and minor internal improvements.
+
 ## License
 
 MIT © metyatech
