@@ -29,8 +29,8 @@
     "build": "tsup",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.md\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.md\"",
+    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.html\" \"*.json\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"public/**/*.html\" \"*.json\" \"*.md\"",
     "verify": "npm run format:check && npm run lint && npm run build && npm run test",
     "prepare": "husky"
   },
@@ -43,6 +43,9 @@
     "src/**/*.ts": [
       "prettier --check",
       "eslint --ext .ts"
+    ],
+    "public/**/*.html": [
+      "prettier --check"
     ]
   },
   "devDependencies": {

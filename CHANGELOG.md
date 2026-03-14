@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `manager-gui`: optional access-code protection via `--auth-token <token>`, `--auth-token auto`, or `THREAD_INBOX_MANAGER_GUI_TOKEN`
+- `manager-gui`: first-use onboarding card for empty workspaces and clearer Japanese status labels in the inbox UI
+- `manager-gui`: `--no-open-browser` flag so other launchers can start the server without opening a local browser window
+
+### Changed
+
+- `manager-gui`: source-mode asset resolution now falls back to `dist/public/manager-app.js`, improving local dev/test execution paths
+
 ## [0.2.1] - 2026-02-23
 
 ### Fixed

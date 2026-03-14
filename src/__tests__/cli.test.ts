@@ -301,4 +301,14 @@ describe('CLI integration', () => {
       expect(data.title).toBe('Test thread');
     });
   });
+
+  describe('manager-gui help', () => {
+    it('documents auth and no-open-browser options', async () => {
+      const { stdout, exitCode } = await runCli(['manager-gui', '--help']);
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('--auth-token <token>');
+      expect(stdout).toContain('--no-open-browser');
+    });
+  });
 });
