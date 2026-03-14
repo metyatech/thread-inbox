@@ -388,13 +388,19 @@ npm test
 npm run lint
 ```
 
+### Audit dependencies
+
+```bash
+npm run audit
+```
+
 ### Format
 
 ```bash
 npm run format
 ```
 
-### Verify (format check + lint + build + test)
+### Verify (format check + lint + build + test + audit)
 
 ```bash
 npm run verify

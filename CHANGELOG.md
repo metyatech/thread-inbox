@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `manager-gui`: optional access-code protection via `--auth-token <token>`, `--auth-token auto`, or `THREAD_INBOX_MANAGER_GUI_TOKEN`
 - `manager-gui`: first-use onboarding card for empty workspaces and clearer Japanese status labels in the inbox UI
 - `manager-gui`: `--no-open-browser` flag so other launchers can start the server without opening a local browser window
+- `manager-gui`: browser-side DOM regression coverage for row patching, detail draft preservation, and in-browser access-code unlock flow
 
 ### Changed
 
 - `manager-gui`: source-mode asset resolution now falls back to `dist/public/manager-app.js`, improving local dev/test execution paths
+- `verify`: now includes `npm audit`, and the lockfile has been refreshed to eliminate the current high-severity advisories from the dependency tree
 
 ## [0.2.1] - 2026-02-23
 

@@ -1521,5 +1521,12 @@ class ManagerApp {
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
-const app = new ManagerApp();
-app.init();
+export { ManagerApp };
+
+export function bootstrapManagerApp(): ManagerApp {
+  const app = new ManagerApp();
+  app.init();
+  return app;
+}
+
+bootstrapManagerApp();

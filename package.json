@@ -28,10 +28,11 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "audit": "npm audit",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\" \"public/**/*.html\" \"*.json\" \"*.md\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"public/**/*.html\" \"*.json\" \"*.md\"",
-    "verify": "npm run format:check && npm run lint && npm run build && npm run test",
+    "verify": "npm run format:check && npm run lint && npm run build && npm run test && npm run audit",
     "prepare": "husky"
   },
   "dependencies": {
@@ -54,6 +55,7 @@
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
