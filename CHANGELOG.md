@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-14
+
 ### Added
 
 - `manager-gui`: optional access-code protection via `--auth-token <token>`, `--auth-token auto`, or `THREAD_INBOX_MANAGER_GUI_TOKEN`
