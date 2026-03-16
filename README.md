@@ -10,6 +10,7 @@ A local CLI tool that tracks threaded conversations between a user and AI agents
 - 💬 **Message Tracking** - Add messages from user or AI with timestamps
 - 🎯 **Smart Filtering** - Filter by status (active, waiting, needs-reply, review, resolved, inbox)
 - 📦 **Simple Storage** - Single JSONL file (`.threads.jsonl`) in your working directory
+- 🔎 **Inspection UI** - A developer/admin browser UI for thread inspection and repair
 - 🎨 **Colored Output** - Easy-to-read colored status indicators
 - 📊 **JSON Support** - All commands support `--json` for machine-readable output
 
@@ -129,17 +130,19 @@ thread-inbox purge
 thread-inbox purge --dry-run
 ```
 
-### Web GUI
+### Inspection GUI
 
 ```bash
-# Launch the web GUI (opens browser automatically)
-thread-inbox gui
+# Launch the developer/admin inspection GUI (opens browser automatically)
+thread-inbox inspect-gui
 
 # Specify port and data directory
-thread-inbox gui --port 3334 --dir ~/projects/my-app
+thread-inbox inspect-gui --port 3334 --dir ~/projects/my-app
 ```
 
-The GUI provides a browser-based interface for managing threads with status filtering, message history, and adding messages.
+The inspection GUI provides a browser-based interface for thread filtering, message history review, and manual repair/debug operations.
+
+This is not the normal Manager UI. Routine manager/orchestrator work belongs in `workspace-agent-hub`. Use `thread-inbox inspect-gui` only for developer/admin inspection, incident response, or low-level thread fixes.
 
 ### Programmatic usage
 
@@ -158,6 +161,8 @@ import {
 ```
 
 This package intentionally stays focused on thread persistence and inspection. Higher-level manager/orchestrator UIs belong in the application that owns the overall workflow, not inside `thread-inbox`.
+
+The included browser UI is therefore an inspection surface, not a second end-user manager product.
 
 ### Use a custom directory
 

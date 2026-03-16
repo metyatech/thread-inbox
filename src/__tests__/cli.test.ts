@@ -301,4 +301,14 @@ describe('CLI integration', () => {
       expect(data.title).toBe('Test thread');
     });
   });
+
+  describe('inspection GUI command', () => {
+    it('should expose inspect-gui instead of the old generic gui command in help output', async () => {
+      const { stdout, exitCode } = await runCli(['--help']);
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('inspect-gui');
+      expect(stdout.replace(/\r/g, '')).not.toContain('\n  gui');
+    });
+  });
 });

@@ -24,7 +24,7 @@ const program = new Command();
 
 program
   .name('thread-inbox')
-  .description('Threaded conversation inbox for managing user-AI interactions')
+  .description('Threaded conversation inbox with developer-focused inspection tools')
   .version(pkg.version);
 
 program
@@ -227,8 +227,8 @@ program
   });
 
 program
-  .command('gui')
-  .description('Start the web GUI')
+  .command('inspect-gui')
+  .description('Start the developer/admin inspection GUI')
   .option('--dir <path>', 'Working directory', process.cwd())
   .option('--port <port>', 'Port to listen on', '3334')
   .action((options: { dir: string; port: string }) => {

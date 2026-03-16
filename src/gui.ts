@@ -217,8 +217,11 @@ export function startGui(dir: string, port = 3334): void {
   tryListen(server, port)
     .then((actualPort) => {
       const url = `http://localhost:${actualPort}`;
-      console.log(`Thread Inbox GUI running at ${url}`);
-      console.log(`Watching: ${resolvedDir}`);
+      console.log(`Thread Inbox Inspector running at ${url}`);
+      console.log(`Inspecting: ${resolvedDir}`);
+      console.log(
+        'Developer/admin inspection only. For routine Manager work, use Workspace Agent Hub.',
+      );
       console.log('Press Ctrl+C to stop.');
       openBrowser(url);
     })
