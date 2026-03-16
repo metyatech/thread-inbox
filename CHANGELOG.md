@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-03-16
+
+### Changed
+
+- Reissued the inspection-only GUI rename as a clean sequential release so the latest git tag, GitHub release, npm package, and install verification all align
+
 ## [0.4.3] - 2026-03-16
 
 ### Changed
