@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-16
+
+### Changed
+
+- **BREAKING**: removed the experimental `manager-gui` surface so the package returns to a clean thread-storage/inspection scope
+- Added a first-class importable library entry (`dist/index.js`) for programmatic thread operations
+
 ## [0.3.0] - 2026-03-14
 
 ### Added

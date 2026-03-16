@@ -2,5 +2,3 @@ node_modules/
 dist/
 *.js.map
 .threads.jsonl
-.thread-inbox-manager.json
-.thread-inbox-queue.jsonl

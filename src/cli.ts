@@ -13,7 +13,6 @@ import {
 } from './threads.js';
 import { formatThreadList, formatThread } from './format.js';
 import { startGui } from './gui.js';
-import { startManagerGui } from './manager-gui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -235,39 +234,6 @@ program
   .action((options: { dir: string; port: string }) => {
     startGui(options.dir, parseInt(options.port, 10));
   });
-
-program
-  .command('manager-gui [dir]')
-  .description('Start the Manager GUI (single-screen workspace view with manager lifecycle)')
-  .option('--port <port>', 'Port to listen on', '3335')
-  .option(
-    '--host <host>',
-    'Host to bind to (use 0.0.0.0 for network/smartphone access)',
-    '127.0.0.1',
-  )
-  .option(
-    '--auth-token <token>',
-    'Require an access code for API use. Pass a literal token or "auto" to generate one for this run.',
-  )
-  .option('--no-open-browser', 'Do not open a browser automatically after the server starts')
-  .action(
-    (
-      dir: string | undefined,
-      options: {
-        port: string;
-        host: string;
-        authToken?: string;
-        openBrowser?: boolean;
-      },
-    ) => {
-      startManagerGui(dir ?? process.cwd(), {
-        port: parseInt(options.port, 10),
-        host: options.host,
-        authToken: options.authToken,
-        openBrowser: options.openBrowser,
-      });
-    },
-  );
 
 program.parseAsync().catch((error: Error) => {
   console.error('Error:', error.message);

@@ -1,10 +1,19 @@
 {
   "name": "@metyatech/thread-inbox",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Threaded conversation inbox for managing user-AI interactions",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "thread-inbox": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

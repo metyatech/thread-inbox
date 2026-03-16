@@ -15,7 +15,7 @@ export default defineConfig([
       if (!existsSync(destDir)) {
         mkdirSync(destDir, { recursive: true });
       }
-      const publicFiles = ['index.html', 'manager.html'];
+      const publicFiles = ['index.html'];
       for (const file of publicFiles) {
         const src = join('public', file);
         if (existsSync(src)) {
@@ -25,14 +25,11 @@ export default defineConfig([
     },
   },
   {
-    // Browser app — emits dist/public/manager-app.js
-    entry: { 'public/manager-app': 'src/manager-app.ts' },
+    // Library entry for programmatic access to thread storage APIs.
+    entry: ['src/index.ts'],
     format: ['esm'],
-    target: 'es2022',
-    platform: 'browser',
-    outDir: 'dist',
+    target: 'node18',
     clean: false,
-    dts: false,
-    minify: false,
+    dts: true,
   },
 ]);

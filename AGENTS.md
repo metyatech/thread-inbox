@@ -79,6 +79,8 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/command-execution.md
 - Do not add wrappers or pipes to commands unless the user explicitly asks.
 - Prefer repository-standard scripts/commands (package.json scripts, README instructions).
 - Reproduce reported command issues by running the same command (or closest equivalent) before proposing fixes.
+- When a Windows process is intended to run headlessly, every non-interactive child console process in that spawn chain must also be launched headlessly (`windowsHide: true`, `CreateNoWindow`, or `Start-Process -WindowStyle Hidden` as appropriate).
+- From a windowless PowerShell parent, do not spawn non-interactive console children with the `&` call operator; use an explicit hidden process launch that preserves output/exit-code handling.
 - When diagnosing third-party tool failures, check the latest stable release first; if the latest still reproduces the failure, treat upgrade as insufficient, record the verified limitation, and use a deterministic workaround when available.
 - Avoid interactive git prompts by using --no-edit or setting GIT_EDITOR=true.
 - If elevated privileges are required, use sudo directly; do not launch a separate elevated shell (e.g., Start-Process -Verb RunAs). Fall back to run as Administrator only when sudo is unavailable.
@@ -95,10 +97,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/command-execution.md
 ## Post-change deployment
 - After modifying code, check whether deployment steps beyond commit/push are needed before concluding.
 - If the repo is globally linked (`npm ls -g` shows `->` to local path), rebuild and verify the global binary is functional.
-- If the repo powers a running service, daemon, or scheduled task, rebuild, restart, and verify with deterministic evidence.
-- Do not claim completion until the running instance reflects the changes.
-- Detection and verification procedures are in the `post-deploy` skill.
-
+- If the repo powers a running service, daemon, or scheduled task, rebuild, restart, and verify with deterministic evidence; do not claim completion until the running instance reflects the changes. Detection and verification procedures are in the `post-deploy` skill.
 - **PowerShell native environment**: This is a Windows/PowerShell environment. Do not use Unix commands directly. On Windows, any Bash-tool command containing `pwsh` or `powershell` is invalid; rewrite it to `pwsh`/`powershell -File` with a `.ps1` file before execution. Do not use `-Command`, stdin, heredoc, or `-EncodedCommand` for PowerShell scripts.
 
 Source: github:metyatech/agent-rules@HEAD/rules/global/implementation-and-coding-standards.md
@@ -199,28 +198,28 @@ Non-negotiable gates for any state-changing work or any claim of "done", "fixed"
 3. **WITH** each AC: define verification evidence.
 4. **FOR** code/runtime changes: automated tests required. Bugfixes MUST include a regression test.
 5. **ALWAYS**: run repo-standard verify command; if missing, add it.
-6. **IN** final response: keep completion reporting concise by default.
+6. **IN** final response: keep completion reporting concise by default. Maintain AC/evidence internally, and surface explicit AC/evidence sections only when the user requests them or when higher-priority rules require path-by-path accounting.
 
 ## Quality principles
 - Quality (correctness, safety, robustness, verifiability) > speed/convenience.
 - CI must run full suite on PRs/pushes; require passing checks for merges; add CI if missing.
 - Commit-time hooks must run full verify and block commits; confirm hooks installed.
 - Test-first: add/update tests, observe failure, implement fix, observe pass.
-- Never swallow errors; fail fast with explicit context.
-- Validate config/external inputs at boundaries.
+- Never swallow errors; fail fast with explicit context and validate config/external inputs at boundaries.
 - For user-facing apps, perform deterministic runtime verification before completion, define the claimed runtime environment matrix, and prefer the least costly faithful verification environment that covers each claimed behavior.
 - For systems whose primary behavior depends on multiple clients, environments, or handoff paths, define the claimed primary path matrix up front and make automated verification of each claimed primary path a completion gate, using the least-cost faithful layer that exercises the boundary.
+- For systems whose behavior depends on persisted or carried state across runs or handoffs (for example local storage, cookies, caches, saved sessions, URL tokens, reconnect state, or server restarts), define the claimed primary state matrix up front and make automated verification of fresh-state, resumed-state, and stale-state transitions a completion gate for each affected primary path.
 - When evidence differs by client, environment, or path, report each claimed client/environment/path separately as verified, reproduced-as-limitation, or unverified; never generalize evidence across them.
 - Anything not directly verified must be reported as unverified or unsupported; use real devices or live environments only when lower-cost faithful environments cannot validate the behavior.
 - For authentication, billing, authorization, data persistence, and other critical systems, passing unit/integration tests, CI, build, and health checks is necessary but insufficient; completion requires live or production-like end-to-end verification of the critical user journey.
 - If an intended environment cannot be exercised with available tools or access, stop short of a completion claim, state the exact gap, and leave that environment unclaimed until verified.
 - For GUI work, include a first-use walkthrough against the primary user goal; functional E2E alone is insufficient when clarity/usability is in scope.
 - For GUI work, do not conclude from functional correctness alone: require screenshot-based review plus automated checks for overflow, clipping, wrapping, and clearly visible primary/current state where feasible; if the user still reports confusion, treat that as a failed acceptance gate and add a regression check for that confusion class before concluding.
+- For GUI work that affects first-use flow, information hierarchy, navigation, or user guidance, require a separate agent review before concluding; the reviewer must assess the rendered UI from the primary user goal and report whether the next action and result location are immediately understandable.
 - For GUI work, perform a whole-screen plausibility review: if the result would look obviously wrong, broken, or visually incoherent to a reasonable user at a glance, treat it as unfinished even when tests pass.
 - Never claim bug-free behavior. Report scope, evidence, and residual risk explicitly.
 - External checks and reviews are advisory. They can support completion, but they do not justify concluding a task while a known gap against the requested outcome remains.
-- For AI review bots, follow the re-triggering procedures in the `pr-review-workflow` skill.
-Detailed evidence format and procedures are in the quality-workflow skill.
+- For AI review bots, follow the re-triggering procedures in the `pr-review-workflow` skill. Detailed evidence format and procedures are in the quality-workflow skill.
 
 Source: github:metyatech/agent-rules@HEAD/rules/global/release-and-publication.md
 
@@ -232,6 +231,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/release-and-publication.m
 - Keep package version and Git tag consistent.
 - Run dependency security checks before release.
 - Verify published packages resolve and run correctly before reporting done.
+- For new user-owned repositories created during a task, create the GitHub remote and push the initial history before reporting complete unless the user explicitly opts out.
 - For public repos, set GitHub Description, Topics, and Homepage. Assign topics from the standard set defined in the `release-publish` skill.
 - Before reporting a publishable-package change as complete, verify the full delivery chain (commit → push → version bump → release → publish → install verify). Procedures in the `release-publish` skill.
 - For user-owned publishable packages, when the user asks to commit/push or finalize a fix, treat release/publish as in-scope follow-up by default and execute the full delivery chain unless the user explicitly opts out.
