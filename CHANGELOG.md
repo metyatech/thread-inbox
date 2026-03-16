@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-03-16
+
+### Changed
+
+- Reissued the clean post-`manager-gui` release with an explicitly pushed Git tag so the latest release chain is aligned end-to-end
+
 ## [0.4.1] - 2026-03-16
 
 ### Changed
