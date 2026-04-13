@@ -197,6 +197,38 @@ describe('threads', () => {
     it('should throw error if thread not found', async () => {
       await expect(addMessage(testDir, 'nonexistent', 'Hello')).rejects.toThrow('Thread not found');
     });
+
+    it('preserves concurrent messages added to the same thread', async () => {
+      const thread = await createThread(testDir, 'Concurrent thread');
+      const contents = ['first', 'second', 'third', 'fourth'];
+
+      await Promise.all(contents.map((content) => addMessage(testDir, thread.id, content, 'ai')));
+
+      const updated = await getThread(testDir, thread.id);
+      expect(updated).not.toBeNull();
+      expect(updated?.messages).toHaveLength(contents.length);
+      expect(updated?.messages.map((message) => message.content).sort()).toEqual(
+        [...contents].sort(),
+      );
+    });
+  });
+
+  describe('concurrent mutations', () => {
+    it('preserves concurrent thread creation', async () => {
+      await Promise.all([
+        createThread(testDir, 'Thread 1'),
+        createThread(testDir, 'Thread 2'),
+        createThread(testDir, 'Thread 3'),
+      ]);
+
+      const threads = await listThreads(testDir);
+      expect(threads).toHaveLength(3);
+      expect(threads.map((thread) => thread.title).sort()).toEqual([
+        'Thread 1',
+        'Thread 2',
+        'Thread 3',
+      ]);
+    });
   });
 
   describe('resolveThread', () => {

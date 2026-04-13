@@ -1,5 +1,5 @@
 import { customAlphabet } from 'nanoid';
-import { readThreads, writeThreads } from './storage.js';
+import { mutateThreads, readThreads } from './storage.js';
 import { Thread, ThreadFilters, ThreadStatus } from './types.js';
 
 // Use alphanumeric-only alphabet so IDs never start with '-' or '_',
@@ -7,22 +7,20 @@ import { Thread, ThreadFilters, ThreadStatus } from './types.js';
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 8);
 
 export async function createThread(dir: string, title: string): Promise<Thread> {
-  const threads = await readThreads(dir);
-  const now = new Date().toISOString();
+  return mutateThreads(dir, (threads) => {
+    const now = new Date().toISOString();
+    const thread: Thread = {
+      id: nanoid(8),
+      title,
+      status: 'active',
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  const thread: Thread = {
-    id: nanoid(8),
-    title,
-    status: 'active',
-    messages: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  threads.push(thread);
-  await writeThreads(dir, threads);
-
-  return thread;
+    threads.push(thread);
+    return thread;
+  });
 }
 
 export async function listThreads(dir: string, filters?: ThreadFilters): Promise<Thread[]> {
@@ -53,77 +51,80 @@ export async function addMessage(
   sender: 'ai' | 'user' = 'user',
   status?: ThreadStatus,
 ): Promise<Thread> {
-  const threads = await readThreads(dir);
-  const threadIndex = threads.findIndex((t) => t.id === id);
+  return mutateThreads(dir, (threads) => {
+    const threadIndex = threads.findIndex((t) => t.id === id);
 
-  if (threadIndex === -1) {
-    throw new Error('Thread not found');
-  }
+    if (threadIndex === -1) {
+      throw new Error('Thread not found');
+    }
 
-  const thread = threads[threadIndex];
-  thread.messages.push({
-    sender,
-    content,
-    at: new Date().toISOString(),
+    const thread = threads[threadIndex];
+    thread.messages.push({
+      sender,
+      content,
+      at: new Date().toISOString(),
+    });
+    thread.updatedAt = new Date().toISOString();
+
+    if (status) {
+      thread.status = status;
+    } else if (sender === 'user') {
+      thread.status = 'waiting';
+    }
+
+    threads[threadIndex] = thread;
+    return thread;
   });
-  thread.updatedAt = new Date().toISOString();
-
-  if (status) {
-    thread.status = status;
-  } else if (sender === 'user') {
-    thread.status = 'waiting';
-  }
-
-  threads[threadIndex] = thread;
-  await writeThreads(dir, threads);
-
-  return thread;
 }
 
 export async function resolveThread(dir: string, id: string): Promise<Thread> {
-  const threads = await readThreads(dir);
-  const threadIndex = threads.findIndex((t) => t.id === id);
+  return mutateThreads(dir, (threads) => {
+    const threadIndex = threads.findIndex((t) => t.id === id);
 
-  if (threadIndex === -1) {
-    throw new Error('Thread not found');
-  }
+    if (threadIndex === -1) {
+      throw new Error('Thread not found');
+    }
 
-  const thread = threads[threadIndex];
-  thread.status = 'resolved';
-  thread.updatedAt = new Date().toISOString();
+    const thread = threads[threadIndex];
+    thread.status = 'resolved';
+    thread.updatedAt = new Date().toISOString();
 
-  threads[threadIndex] = thread;
-  await writeThreads(dir, threads);
-
-  return thread;
+    threads[threadIndex] = thread;
+    return thread;
+  });
 }
 
 export async function reopenThread(dir: string, id: string): Promise<Thread> {
-  const threads = await readThreads(dir);
-  const threadIndex = threads.findIndex((t) => t.id === id);
+  return mutateThreads(dir, (threads) => {
+    const threadIndex = threads.findIndex((t) => t.id === id);
 
-  if (threadIndex === -1) {
-    throw new Error('Thread not found');
-  }
+    if (threadIndex === -1) {
+      throw new Error('Thread not found');
+    }
 
-  const thread = threads[threadIndex];
-  thread.status = 'active';
-  thread.updatedAt = new Date().toISOString();
+    const thread = threads[threadIndex];
+    thread.status = 'active';
+    thread.updatedAt = new Date().toISOString();
 
-  threads[threadIndex] = thread;
-  await writeThreads(dir, threads);
-
-  return thread;
+    threads[threadIndex] = thread;
+    return thread;
+  });
 }
 
 export async function purgeThreads(dir: string, dryRun = false): Promise<Thread[]> {
-  const threads = await readThreads(dir);
-  const resolvedThreads = threads.filter((t) => t.status === 'resolved');
-
-  if (!dryRun && resolvedThreads.length > 0) {
-    const remainingThreads = threads.filter((t) => t.status !== 'resolved');
-    await writeThreads(dir, remainingThreads);
+  if (dryRun) {
+    const threads = await readThreads(dir);
+    return threads.filter((t) => t.status === 'resolved');
   }
 
-  return resolvedThreads;
+  return mutateThreads(dir, (threads) => {
+    const resolvedThreads = threads.filter((t) => t.status === 'resolved');
+    if (resolvedThreads.length === 0) {
+      return [];
+    }
+
+    const remainingThreads = threads.filter((t) => t.status !== 'resolved');
+    threads.splice(0, threads.length, ...remainingThreads);
+    return resolvedThreads;
+  });
 }

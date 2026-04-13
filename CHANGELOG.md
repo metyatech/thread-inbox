@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-04-14
+
+### Fixed
+
+- Serialized thread mutations with a cross-process storage lock and atomic file replacement so concurrent `create`, `add`, `resolve`, `reopen`, and `purge` operations no longer lose messages or leave malformed `.threads.jsonl` lines
+
 ## [0.4.4] - 2026-03-16
 
 ### Changed
